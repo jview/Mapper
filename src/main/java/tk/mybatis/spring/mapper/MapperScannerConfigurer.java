@@ -24,14 +24,16 @@
 
 package tk.mybatis.spring.mapper;
 
+import java.util.Properties;
+
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
+
 import tk.mybatis.mapper.common.Marker;
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
+import tk.mybatis.mapper.mapperhelper.SqlHelper;
 import tk.mybatis.mapper.util.StringUtil;
-
-import java.util.Properties;
 
 
 public class MapperScannerConfigurer extends org.mybatis.spring.mapper.MapperScannerConfigurer {
@@ -59,6 +61,29 @@ public class MapperScannerConfigurer extends org.mybatis.spring.mapper.MapperSca
      */
     public void setProperties(Properties properties) {
         mapperHelper.setProperties(properties);
+    }
+    
+    public void setPropertyIgnoreAll(String ignoreProperties){
+    	String className=null;
+    	SqlHelper.addIgnore(className, ignoreProperties);
+    }
+    
+    /**
+     * com.isea533.mybatis.model.CountryVO=name,sex
+     * @param ignoreProperties
+     */
+    public void setPropertyIgnore(String propertyIgnores){
+    	if(propertyIgnores==null){
+    		return;
+    	}
+    	propertyIgnores=propertyIgnores.trim();
+    	String[] lines=propertyIgnores.split("\n");
+    	String[] datas=null;
+    	for(String line:lines){
+    		line=line.trim();
+    		datas=line.split("=");
+    		SqlHelper.addIgnore(datas[0], datas[1]);
+    	}
     }
 
     /**

@@ -24,11 +24,12 @@
 
 package tk.mybatis.mapper.mapperhelper;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import tk.mybatis.mapper.entity.EntityColumn;
 import tk.mybatis.mapper.entity.IDynamicTableName;
 import tk.mybatis.mapper.util.StringUtil;
-
-import java.util.Set;
 
 /**
  * 拼常用SQL的工具类
@@ -37,6 +38,40 @@ import java.util.Set;
  * @since 2015-11-03 22:40
  */
 public class SqlHelper {
+	private static Set<String> ignoreColumnSet=new HashSet<String>();
+	private static Set<String> ignoreColumnAllSet=new HashSet<String>();
+	public static void addIgnore(Class<?> entityClass, String propertyName){
+		String className=null;
+		if(entityClass!=null){
+			className=entityClass.getName();
+		}
+		addIgnore(className, propertyName);
+	}
+	public static void addIgnore(String className, String propertyName){
+		String[] arrays = propertyName.split(",");
+		for (String str : arrays) {
+			if(className!=null){
+				ignoreColumnSet.add(className+"."+str);
+			}
+			else{
+				ignoreColumnAllSet.add(str);
+			}
+		}
+	}
+	
+	public static boolean isIgnore(String className, String propertyName){
+		boolean isIgnore=false;
+		if(ignoreColumnAllSet.contains(propertyName)||
+				ignoreColumnSet.contains(className+"."+propertyName)){
+			isIgnore=true;
+    	}
+    	return isIgnore;
+	}
+	
+	public static String getIgnoreProperties(String className){
+		String columns="";
+		return columns;
+	}
 
     /**
      * 获取表名 - 支持动态表名
@@ -231,9 +266,14 @@ public class SqlHelper {
     public static String getAllColumns(Class<?> entityClass) {
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         StringBuilder sql = new StringBuilder();
+        String className=entityClass.getName();
         for (EntityColumn entityColumn : columnList) {
+        	if(isIgnore(className, entityColumn.getProperty())){
+        		continue;
+        	}
             sql.append(entityColumn.getColumn()).append(",");
         }
+        
         return sql.substring(0, sql.length() - 1);
     }
 
@@ -353,10 +393,14 @@ public class SqlHelper {
     public static String insertColumns(Class<?> entityClass, boolean skipId, boolean notNull, boolean notEmpty) {
         StringBuilder sql = new StringBuilder();
         sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
+        String className=entityClass.getName();
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
+        	if(isIgnore(className, column.getProperty())){
+        		continue;
+        	}
             if (!column.isInsertable()) {
                 continue;
             }
@@ -387,8 +431,12 @@ public class SqlHelper {
         sql.append("<trim prefix=\"VALUES (\" suffix=\")\" suffixOverrides=\",\">");
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
+        String className=entityClass.getName();
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
+        	if(isIgnore(className, column.getProperty())){
+        		continue;
+        	}
             if (!column.isInsertable()) {
                 continue;
             }
@@ -417,10 +465,15 @@ public class SqlHelper {
     public static String updateSetColumns(Class<?> entityClass, String entityName, boolean notNull, boolean notEmpty) {
         StringBuilder sql = new StringBuilder();
         sql.append("<set>");
+//        System.out.println("----entityName="+entityName+" entityClass="+entityClass);
+        String className=entityClass.getName();
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
+        	if(isIgnore(className, column.getProperty())){
+        		continue;
+        	}
             if (!column.isId() && column.isUpdatable()) {
                 if (notNull) {
                     sql.append(SqlHelper.getIfNotNull(entityName, column, column.getColumnEqualsHolder(entityName) + ",", notEmpty));
