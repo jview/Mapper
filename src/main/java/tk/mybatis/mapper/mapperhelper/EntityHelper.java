@@ -98,7 +98,17 @@ public class EntityHelper {
      * @return
      */
     public static Set<EntityColumn> getColumns(Class<?> entityClass) {
-        return getEntityTable(entityClass).getEntityClassColumns();
+    	//移除忽略的属性
+    	Set<EntityColumn> setR=new HashSet<EntityColumn>();
+    	Set<EntityColumn> sets=getEntityTable(entityClass).getEntityClassColumns();
+    	for(EntityColumn ec:sets){
+    		if(SqlHelper.isIgnore(entityClass.getName(), ec.getProperty())){
+        		continue;
+        	}
+    		setR.add(ec);
+    	}
+    	
+    	return setR;
     }
 
     /**

@@ -101,6 +101,7 @@ public class BaseInsertProvider extends MapperTemplate {
         sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
         sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
         sql.append("<trim prefix=\"VALUES(\" suffix=\")\" suffixOverrides=\",\">");
+        String seqIdStr=null;
         for (EntityColumn column : columnList) {
             if (!column.isInsertable()) {
                 continue;
@@ -116,7 +117,12 @@ public class BaseInsertProvider extends MapperTemplate {
             //当属性为null时，如果存在主键策略，会自动获取值，如果不存在，则使用null
             //序列的情况
             if (StringUtil.isNotEmpty(column.getSequenceName())) {
-                sql.append(SqlHelper.getIfIsNull(column, getSeqNextVal(column) + " ,", false));
+            	seqIdStr=getSeqNextVal(column);
+            	//support mysql sequence 用于支持mysql的序列生成
+            	if(seqIdStr.indexOf("_nextval(")>0 && seqIdStr.endsWith(".nextval")){
+            		seqIdStr=seqIdStr.substring(seqIdStr.indexOf("_nextval("),  seqIdStr.length()-".nextval".length());
+            	}
+                sql.append(SqlHelper.getIfIsNull(column, seqIdStr + " ,", false));
             } else if (column.isIdentity()) {
                 sql.append(SqlHelper.getIfCacheIsNull(column, column.getColumnHolder() + ","));
             } else if (column.isUuid()) {
@@ -127,6 +133,7 @@ public class BaseInsertProvider extends MapperTemplate {
             }
         }
         sql.append("</trim>");
+//        System.out.println("----sql="+sql.toString());
         return sql.toString();
     }
 

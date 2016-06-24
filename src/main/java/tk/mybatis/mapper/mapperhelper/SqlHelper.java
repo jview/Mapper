@@ -268,9 +268,6 @@ public class SqlHelper {
         StringBuilder sql = new StringBuilder();
         String className=entityClass.getName();
         for (EntityColumn entityColumn : columnList) {
-        	if(isIgnore(className, entityColumn.getProperty())){
-        		continue;
-        	}
             sql.append(entityColumn.getColumn()).append(",");
         }
         
@@ -398,9 +395,6 @@ public class SqlHelper {
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
-        	if(isIgnore(className, column.getProperty())){
-        		continue;
-        	}
             if (!column.isInsertable()) {
                 continue;
             }
@@ -434,9 +428,6 @@ public class SqlHelper {
         String className=entityClass.getName();
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
-        	if(isIgnore(className, column.getProperty())){
-        		continue;
-        	}
             if (!column.isInsertable()) {
                 continue;
             }
@@ -471,9 +462,6 @@ public class SqlHelper {
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
-        	if(isIgnore(className, column.getProperty())){
-        		continue;
-        	}
             if (!column.isId() && column.isUpdatable()) {
                 if (notNull) {
                     sql.append(SqlHelper.getIfNotNull(entityName, column, column.getColumnEqualsHolder(entityName) + ",", notEmpty));
