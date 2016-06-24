@@ -24,8 +24,27 @@
 
 package tk.mybatis.mapper.mapperhelper;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.persistence.Column;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OrderBy;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import org.apache.ibatis.logging.Log;
+import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.UnknownTypeHandler;
+
 import tk.mybatis.mapper.annotation.ColumnType;
 import tk.mybatis.mapper.annotation.NameStyle;
 import tk.mybatis.mapper.code.IdentityDialect;
@@ -36,9 +55,6 @@ import tk.mybatis.mapper.entity.EntityField;
 import tk.mybatis.mapper.entity.EntityTable;
 import tk.mybatis.mapper.util.StringUtil;
 
-import javax.persistence.*;
-import java.util.*;
-
 /**
  * 实体类工具类 - 处理实体和数据库表以及字段关键的一个类
  * <p/>
@@ -47,6 +63,8 @@ import java.util.*;
  * @author liuzh
  */
 public class EntityHelper {
+	private static final Log logger = LogFactory.getLog(EntityHelper.class);
+	
 
     /**
      * 实体类 => 表对象
@@ -101,13 +119,18 @@ public class EntityHelper {
     	//移除忽略的属性
     	Set<EntityColumn> setR=new HashSet<EntityColumn>();
     	Set<EntityColumn> sets=getEntityTable(entityClass).getEntityClassColumns();
+    	String ignores="";
     	for(EntityColumn ec:sets){
     		if(SqlHelper.isIgnore(entityClass.getName(), ec.getProperty())){
+    			ignores+=ec.getProperty()+",";
         		continue;
         	}
     		setR.add(ec);
     	}
-    	
+    	if(ignores.endsWith(",")){
+    		ignores=ignores.substring(0,  ignores.length()-1);
+    		logger.debug("mybatis property column ignore:"+ignores+" by MapperScannerConfigurer config:propertyIgnoreAll,propertyIgnore");
+    	}
     	return setR;
     }
 
