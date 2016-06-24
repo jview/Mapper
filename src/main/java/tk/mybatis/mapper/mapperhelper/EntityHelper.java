@@ -108,6 +108,8 @@ public class EntityHelper {
         table.setOrderByClause(orderBy.toString());
         return table.getOrderByClause();
     }
+    
+    private static Set<String> ifPrintMap=new HashSet<String>();
 
     /**
      * 获取全部列
@@ -117,19 +119,23 @@ public class EntityHelper {
      */
     public static Set<EntityColumn> getColumns(Class<?> entityClass) {
     	//移除忽略的属性
+    	String className=entityClass.getName();
     	Set<EntityColumn> setR=new HashSet<EntityColumn>();
     	Set<EntityColumn> sets=getEntityTable(entityClass).getEntityClassColumns();
     	String ignores="";
     	for(EntityColumn ec:sets){
-    		if(SqlHelper.isIgnore(entityClass.getName(), ec.getProperty())){
+    		if(SqlHelper.isIgnore(className, ec.getProperty())){
     			ignores+=ec.getProperty()+",";
         		continue;
         	}
     		setR.add(ec);
     	}
-    	if(ignores.endsWith(",")){
-    		ignores=ignores.substring(0,  ignores.length()-1);
-    		logger.debug("mybatis property column ignore:"+ignores+" by MapperScannerConfigurer config:propertyIgnoreAll,propertyIgnore");
+    	if(!ifPrintMap.contains(className)){
+	    	if(ignores.endsWith(",")){
+	    		ignores=ignores.substring(0,  ignores.length()-1);
+	    		logger.debug("mybatisIgnore "+className+":"+ignores+" (@See MapperScannerConfigurer config:propertyIgnoreAll,propertyIgnore)");
+	    	}
+	    	ifPrintMap.add(className);
     	}
     	return setR;
     }
