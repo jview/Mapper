@@ -270,8 +270,11 @@ public class SqlHelper {
         for (EntityColumn entityColumn : columnList) {
             sql.append(entityColumn.getColumn()).append(",");
         }
-        
-        return sql.substring(0, sql.length() - 1);
+        String rSql=sql.toString();
+        if(rSql.endsWith(",")){
+        	rSql=rSql.substring(0,  rSql.length()-1);
+        }
+        return rSql;
     }
 
     /**
