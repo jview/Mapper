@@ -77,12 +77,17 @@ public class MapperScannerConfigurer extends org.mybatis.spring.mapper.MapperSca
     		return;
     	}
     	propertyIgnores=propertyIgnores.trim();
+    	if("".equals(propertyIgnores)){
+    		return;
+    	}
     	String[] lines=propertyIgnores.split("\n");
     	String[] datas=null;
     	for(String line:lines){
     		line=line.trim();
     		datas=line.split("=");
-    		SqlHelper.addIgnore(datas[0], datas[1]);
+    		if(datas.length>=2){
+    			SqlHelper.addIgnore(datas[0], datas[1]);
+    		}
     	}
     }
 
