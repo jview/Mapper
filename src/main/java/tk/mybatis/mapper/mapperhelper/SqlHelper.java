@@ -308,6 +308,18 @@ public class SqlHelper {
         }
         return sql.toString();
     }
+    
+    /**
+     * select max(cid)
+     *
+     * @param entityClass
+     * @return
+     */
+    public static String selectMaxCid(Class<?> entityClass) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT max(cid) ");
+        return sql.toString();
+    }
 
     /**
      * from tableName - 动态表名

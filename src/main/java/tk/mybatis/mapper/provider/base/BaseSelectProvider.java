@@ -39,6 +39,15 @@ public class BaseSelectProvider extends MapperTemplate {
     public BaseSelectProvider(Class<?> mapperClass, MapperHelper mapperHelper) {
         super(mapperClass, mapperHelper);
     }
+    
+    public String selectMaxCid(MappedStatement ms){
+    	Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        sql.append(SqlHelper.selectMaxCid(entityClass));
+        sql.append(SqlHelper.fromTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.whereAllIfColumns(entityClass, isNotEmpty()));
+        return sql.toString();
+    }
 
     /**
      * 查询
