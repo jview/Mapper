@@ -46,5 +46,8 @@ public interface SelectCountMapper<T> {
     
     @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
     Long selectMaxCid(T record);
+    
+    @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
+    Long selectSeqId(T record);
 
 }

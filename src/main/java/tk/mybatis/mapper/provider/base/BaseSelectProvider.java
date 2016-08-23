@@ -24,10 +24,16 @@
 
 package tk.mybatis.mapper.provider.base;
 
+import java.util.Set;
+
 import org.apache.ibatis.mapping.MappedStatement;
+
+import tk.mybatis.mapper.entity.EntityColumn;
+import tk.mybatis.mapper.mapperhelper.EntityHelper;
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
 import tk.mybatis.mapper.mapperhelper.MapperTemplate;
 import tk.mybatis.mapper.mapperhelper.SqlHelper;
+import tk.mybatis.mapper.util.StringUtil;
 
 /**
  * BaseSelectProvider实现类，基础方法实现类
@@ -46,6 +52,26 @@ public class BaseSelectProvider extends MapperTemplate {
         sql.append(SqlHelper.selectMaxCid(entityClass));
         sql.append(SqlHelper.fromTable(entityClass, tableName(entityClass)));
         sql.append(SqlHelper.whereAllIfColumns(entityClass, isNotEmpty()));
+        return sql.toString();
+    }
+    
+    /**
+     * 查询主键Id
+     *
+     * @param ms
+     * @return
+     */
+    public String selectSeqId(MappedStatement ms) {
+        Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        //获取全部列
+        Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
+        for (EntityColumn column : columnList) {
+        	if (StringUtil.isNotEmpty(column.getSequenceName())) {
+        		sql.append(column.getSequenceName());
+        		break;
+        	}
+        }
         return sql.toString();
     }
 
@@ -124,6 +150,8 @@ public class BaseSelectProvider extends MapperTemplate {
         sql.append(SqlHelper.whereAllIfColumns(entityClass, isNotEmpty()));
         return sql.toString();
     }
+    
+   
 
     /**
      * 查询全部结果
