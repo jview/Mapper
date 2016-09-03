@@ -54,6 +54,22 @@ public class ExampleProvider extends MapperTemplate {
         sql.append(SqlHelper.exampleWhereClause());
         return sql.toString();
     }
+    
+    /**
+     * 根据Example查询总数
+     *
+     * @param ms
+     * @return
+     */
+    public String selectMaxModifyDateByExample(MappedStatement ms) {
+        Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        sql.append(SqlHelper.selectMaxModifyDate(entityClass));
+        sql.append(SqlHelper.fromTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.exampleWhereClause());
+        return sql.toString();
+    }
+
 
     /**
      * 根据Example删除

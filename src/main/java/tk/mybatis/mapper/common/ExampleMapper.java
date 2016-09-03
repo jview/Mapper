@@ -24,7 +24,12 @@
 
 package tk.mybatis.mapper.common;
 
-import tk.mybatis.mapper.common.example.*;
+import tk.mybatis.mapper.common.example.DeleteByExampleMapper;
+import tk.mybatis.mapper.common.example.SelectByExampleMapper;
+import tk.mybatis.mapper.common.example.SelectCountByExampleMapper;
+import tk.mybatis.mapper.common.example.SelectMaxModifyDateByExampleMapper;
+import tk.mybatis.mapper.common.example.UpdateByExampleMapper;
+import tk.mybatis.mapper.common.example.UpdateByExampleSelectiveMapper;
 
 /**
  * 通用Mapper接口,Example查询
@@ -35,6 +40,7 @@ import tk.mybatis.mapper.common.example.*;
 public interface ExampleMapper<T> extends
         SelectByExampleMapper<T>,
         SelectCountByExampleMapper<T>,
+        SelectMaxModifyDateByExampleMapper<T>,
         DeleteByExampleMapper<T>,
         UpdateByExampleMapper<T>,
         UpdateByExampleSelectiveMapper<T> {

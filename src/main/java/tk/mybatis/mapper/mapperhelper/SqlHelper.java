@@ -310,6 +310,18 @@ public class SqlHelper {
     }
     
     /**
+     * select count(x)
+     *
+     * @param entityClass
+     * @return
+     */
+    public static String selectMaxModifyDate(Class<?> entityClass) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT max(modify_date) ");
+        return sql.toString();
+    }
+    
+    /**
      * select max(cid)
      *
      * @param entityClass
