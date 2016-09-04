@@ -24,14 +24,16 @@
 
 package tk.mybatis.mapper.test.mysql;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Assert;
+import org.junit.Test;
+
 import tk.mybatis.mapper.mapper.CountryMapper;
 import tk.mybatis.mapper.mapper.MybatisHelper;
 import tk.mybatis.mapper.model.Country;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 通过实体类属性进行插入
@@ -44,7 +46,7 @@ public class TestMysql {
      * 插入完整数据
      */
     //该方法测试需要mysql或者h2数据库，所以这里注释掉
-    //@Test
+//    @Test
     public void testInsertList() {
         SqlSession sqlSession = MybatisHelper.getSqlSession();
         try {
@@ -65,6 +67,14 @@ public class TestMysql {
             sqlSession.rollback();
             sqlSession.close();
         }
+    }
+    
+    public void testUpdateListById(){
+    	
+    }
+    
+    public void testUpdateListByIdSelective(){
+    	
     }
 
     /**
