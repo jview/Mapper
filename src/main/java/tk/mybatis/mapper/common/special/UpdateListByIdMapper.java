@@ -22,23 +22,31 @@
  * THE SOFTWARE.
  */
 
-package tk.mybatis.mapper.common;
+package tk.mybatis.mapper.common.special;
 
-import tk.mybatis.mapper.common.special.InsertListMapper;
-import tk.mybatis.mapper.common.special.InsertUseGeneratedKeysMapper;
-import tk.mybatis.mapper.common.special.UpdateListByIdMapper;
-import tk.mybatis.mapper.common.special.UpdateListByIdSelectiveMapper;
+import java.util.List;
+
+import org.apache.ibatis.annotations.UpdateProvider;
+
+import tk.mybatis.mapper.provider.SpecialProvider;
 
 /**
- * 通用Mapper接口,MySql独有的通用方法
+ * 通用Mapper接口,特殊方法，批量插入，支持批量插入的数据库都可以使用，例如mysql,h2等
  *
  * @param <T> 不能为空
  * @author liuzh
  */
-public interface MySqlMapper<T> extends
-        InsertListMapper<T>,
-        InsertUseGeneratedKeysMapper<T>,
-        UpdateListByIdMapper<T>,
-		UpdateListByIdSelectiveMapper<T>{
+public interface UpdateListByIdMapper<T> {
+
+    /**
+     * 批量修改，支持批量插入的数据库可以使用，例如MySQL,H2等，另外该接口限制实体包含`id`属性并且必须为自增列
+     *
+     * @param recordList
+     * @return
+     */
+//    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @UpdateProvider(type = SpecialProvider.class, method = "dynamicSQL")
+    int updateListById(List<T> recordList);
+
 
 }

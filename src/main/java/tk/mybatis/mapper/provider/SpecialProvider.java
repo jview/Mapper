@@ -24,15 +24,15 @@
 
 package tk.mybatis.mapper.provider;
 
+import java.util.Set;
+
 import org.apache.ibatis.mapping.MappedStatement;
+
 import tk.mybatis.mapper.entity.EntityColumn;
-import tk.mybatis.mapper.entity.EntityTable;
 import tk.mybatis.mapper.mapperhelper.EntityHelper;
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
 import tk.mybatis.mapper.mapperhelper.MapperTemplate;
 import tk.mybatis.mapper.mapperhelper.SqlHelper;
-
-import java.util.Set;
 
 /**
  * SpecialProvider实现类，特殊方法实现类
@@ -55,20 +55,78 @@ public class SpecialProvider extends MapperTemplate {
         //开始拼sql
         StringBuilder sql = new StringBuilder();
         sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-        sql.append(SqlHelper.insertColumns(entityClass, true, false, false));
+        sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
         sql.append(" VALUES ");
         sql.append("<foreach collection=\"list\" item=\"record\" separator=\",\" >");
         sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
+        
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
+        String seqName=null;
         for (EntityColumn column : columnList) {
+        	//获取id seqName
+        	if(column.isId()){
+        		seqName=column.getSequenceName();
+        		if(seqName!=null && seqName.startsWith("select")){
+        			seqName=seqName.substring("select".length());
+        		}
+        		sql.append(seqName+",");
+        	}
             if (!column.isId() && column.isInsertable()) {
                 sql.append(column.getColumnHolder("record") + ",");
             }
         }
         sql.append("</trim>");
         sql.append("</foreach>");
+//        System.out.println("-----sql="+sql.toString());
+        return sql.toString();
+    }
+    
+    /**
+     * 批量修改
+     *
+     * @param ms
+     */
+    public String updateListByIdSelective(MappedStatement ms) {
+        
+        final Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        sql.append("<foreach collection=\"list\" item=\"record\" separator=\",\" >");
+        sql.append(SqlHelper.updateTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.updateSetColumns(entityClass, "record", true, isNotEmpty()));
+        sql.append(this.wherePKColumns(entityClass, "record"));
+        sql.append("</foreach>");
+        return sql.toString();
+    }
+    
+    /**
+     * 批量修改
+     *
+     * @param ms
+     */
+    public String updateListById(MappedStatement ms) {
+        
+        final Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        sql.append("<foreach collection=\"list\" item=\"record\" separator=\",\" >");
+        sql.append(SqlHelper.updateTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.updateSetColumns(entityClass, "record", false, !isNotEmpty()));
+        sql.append(this.wherePKColumns(entityClass, "record"));
+        sql.append("</foreach>");
+        return sql.toString();
+    }
+
+    private String wherePKColumns(Class<?> entityClass, String entityName) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("<where>");
+        //获取全部列
+        Set<EntityColumn> columnList = EntityHelper.getPKColumns(entityClass);
+        //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
+        for (EntityColumn column : columnList) {
+            sql.append(" and " + column.getColumnEqualsHolder(entityName));
+        }
+        sql.append("</where>");
         return sql.toString();
     }
 
