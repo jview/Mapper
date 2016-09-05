@@ -76,20 +76,11 @@ public class SpecialProvider extends MapperTemplate {
 			// 开始拼sql
 			StringBuilder sql = new StringBuilder();
 			sql.append(
-					"<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"begin\" close=\"end;\" separator=\";\" >");
+					"<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"\" close=\"\" separator=\";\" >");
 			sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
 			sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
 			// 获取全部列
 			Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-
-			// String sqlCName="";
-			// for (EntityColumn column : columnList) {
-			// sqlCName+=column.getColumn()+",";
-			// }
-			// if(sqlCName.endsWith(",")){
-			// sqlCName=sqlCName.substring(0, sqlCName.length()-1);
-			// }
-			// sql.append("("+sqlCName+")");
 			sql.append(" VALUES ");
 			sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
 
@@ -109,10 +100,7 @@ public class SpecialProvider extends MapperTemplate {
 					sqlCValue += column.getColumnHolder("item") + ",";
 				}
 			}
-			if (sqlCValue.endsWith(",")) {
-				sqlCValue = sqlCValue.substring(0, sqlCValue.length() - 1);
-			}
-			sql.append("(" + sqlCValue + ")");
+			sql.append(sqlCValue);
 			sql.append("</trim>");
 			sql.append("</foreach>");
 //			System.out.println("-----sql=" + sql.toString());
@@ -163,11 +151,18 @@ public class SpecialProvider extends MapperTemplate {
         
         final Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
-        sql.append("<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"begin\" close=\"end;\" separator=\";\" >");
+        if(this.isMysql(ms)){
+        	sql.append("<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"\" close=\"\" separator=\";\" >");
+        }
+        else{
+        	sql.append("<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"begin\" close=\"end;\" separator=\";\" >");
+        }
+        
         sql.append(SqlHelper.updateTable(entityClass, tableName(entityClass)));
         sql.append(SqlHelper.updateSetColumns(entityClass, "item", true, isNotEmpty()));
         sql.append(this.wherePKColumns(entityClass, "item"));
         sql.append("</foreach>");
+//        System.out.println("----update="+sql);
         return sql.toString();
     }
     
@@ -180,10 +175,15 @@ public class SpecialProvider extends MapperTemplate {
         
         final Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
-        sql.append("<foreach collection=\"list\" item=\"record\" separator=\",\" >");
+        if(this.isMysql(ms)){
+        	sql.append("<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"\" close=\"\" separator=\";\" >");
+        }
+        else{
+        	sql.append("<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"begin\" close=\"end;\" separator=\";\" >");
+        }
         sql.append(SqlHelper.updateTable(entityClass, tableName(entityClass)));
-        sql.append(SqlHelper.updateSetColumns(entityClass, "record", false, !isNotEmpty()));
-        sql.append(this.wherePKColumns(entityClass, "record"));
+        sql.append(SqlHelper.updateSetColumns(entityClass, "item", false, !isNotEmpty()));
+        sql.append(this.wherePKColumns(entityClass, "item"));
         sql.append("</foreach>");
         return sql.toString();
     }
