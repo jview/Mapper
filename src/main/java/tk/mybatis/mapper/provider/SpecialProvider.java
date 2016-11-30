@@ -137,7 +137,9 @@ public class SpecialProvider extends MapperTemplate {
 		}
 		sql.append("</trim>");
 		sql.append("</foreach>");
-//		 System.out.println("-----sql="+sql.toString());
+		if(" _nextval('_yc_orderPayFlow_cid_seq')".equals(seqName)){
+			System.out.println("-----sql="+sql.toString());
+		}
 		return sql.toString();
     	
     }

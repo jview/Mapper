@@ -266,9 +266,43 @@ public class SqlHelper {
     public static String getAllColumns(Class<?> entityClass) {
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         StringBuilder sql = new StringBuilder();
-        String className=entityClass.getName();
+//        String className=entityClass.getName();
         for (EntityColumn entityColumn : columnList) {
             sql.append(entityColumn.getColumn()).append(",");
+        }
+        String rSql=sql.toString();
+        if(rSql.endsWith(",")){
+        	rSql=rSql.substring(0,  rSql.length()-1);
+        }
+        return rSql;
+    }
+    
+    public static String getAllProperties(Class<?> entityClass, String ignoreProperties) {
+        Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
+        StringBuilder sql = new StringBuilder();
+//        String className=entityClass.getName();
+        String[] ignores=new String[0];
+        if(ignoreProperties!=null){
+        	if(ignoreProperties.indexOf(",")>0){
+        		ignores=ignoreProperties.split(",");
+        	}
+        	else{
+        		ignores=new String[]{ignoreProperties};
+        	}
+        }
+        boolean isIgnore=false;
+        for (EntityColumn entityColumn : columnList) {
+        	isIgnore=false;
+        	for(String ignore:ignores){
+        		if(entityColumn.getProperty().equals(ignore)){
+        			isIgnore=true;
+        			break;
+        		}
+        	}
+        	if(isIgnore){
+        		continue;
+        	}
+            sql.append(entityColumn.getProperty()).append(",");
         }
         String rSql=sql.toString();
         if(rSql.endsWith(",")){
@@ -483,7 +517,6 @@ public class SqlHelper {
     public static String updateSetColumns(Class<?> entityClass, String entityName, boolean notNull, boolean notEmpty) {
         StringBuilder sql = new StringBuilder();
         sql.append("<set>");
-//        System.out.println("----entityName="+entityName+" entityClass="+entityClass);
         String className=entityClass.getName();
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
