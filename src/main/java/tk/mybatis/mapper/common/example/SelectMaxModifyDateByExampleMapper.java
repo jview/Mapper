@@ -24,7 +24,10 @@
 
 package tk.mybatis.mapper.common.example;
 
+import java.util.Date;
+
 import org.apache.ibatis.annotations.SelectProvider;
+
 import tk.mybatis.mapper.provider.ExampleProvider;
 
 /**
@@ -42,6 +45,6 @@ public interface SelectMaxModifyDateByExampleMapper<T> {
      * @return
      */
     @SelectProvider(type = ExampleProvider.class, method = "dynamicSQL")
-    int selectMaxModifyDateByExample(Object example);
+    Date selectMaxModifyDateByExample(Object example);
 
 }
