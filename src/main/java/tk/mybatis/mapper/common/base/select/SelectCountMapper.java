@@ -49,5 +49,8 @@ public interface SelectCountMapper<T> {
     
     @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
     Long selectSeqId(T record);
+    
+    @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
+    Long nextSeqId(T record);
 
 }

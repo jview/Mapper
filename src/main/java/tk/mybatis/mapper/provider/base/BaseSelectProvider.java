@@ -62,6 +62,16 @@ public class BaseSelectProvider extends MapperTemplate {
      * @return
      */
     public String selectSeqId(MappedStatement ms) {
+        return nextSeqId(ms);
+    }
+    
+    /**
+     * 查询主键Id
+     *
+     * @param ms
+     * @return
+     */
+    public String nextSeqId(MappedStatement ms) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
         //获取全部列
