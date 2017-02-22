@@ -10,5 +10,5 @@ public interface UpdateSeqIdMapper<T> {
 	  Long selectSeqId(T record);
 	    
 	  @UpdateProvider(type = BaseUpdateProvider.class, method = "dynamicSQL")
-	  Long nextSeqId(T record);
+	  Long updateSeqId(T record);
 }

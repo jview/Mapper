@@ -53,7 +53,7 @@ public class BaseUpdateProvider extends MapperTemplate {
      * @return
      */
     public String selectSeqId(MappedStatement ms) {
-        return nextSeqId(ms);
+        return updateSeqId(ms);
     }
     
     /**
@@ -62,7 +62,7 @@ public class BaseUpdateProvider extends MapperTemplate {
      * @param ms
      * @return
      */
-    public String nextSeqId(MappedStatement ms) {
+    public String updateSeqId(MappedStatement ms) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
         //获取全部列
