@@ -26,6 +26,7 @@ package tk.mybatis.mapper.common.base;
 
 import tk.mybatis.mapper.common.base.update.UpdateByPrimaryKeyMapper;
 import tk.mybatis.mapper.common.base.update.UpdateByPrimaryKeySelectiveMapper;
+import tk.mybatis.mapper.common.base.update.UpdateSeqIdMapper;
 
 /**
  * 通用Mapper接口,基础查询
@@ -35,6 +36,7 @@ import tk.mybatis.mapper.common.base.update.UpdateByPrimaryKeySelectiveMapper;
  */
 public interface BaseUpdateMapper<T> extends
         UpdateByPrimaryKeyMapper<T>,
-        UpdateByPrimaryKeySelectiveMapper<T> {
+        UpdateByPrimaryKeySelectiveMapper<T>,
+        UpdateSeqIdMapper<T> {
 
 }
