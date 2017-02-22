@@ -56,6 +56,10 @@ public class BaseUpdateProvider extends MapperTemplate {
         return updateSeqId(ms);
     }
     
+    public String nextSeqId(MappedStatement ms) {
+        return updateSeqId(ms);
+    }
+    
     /**
      * 查询主键Id
      *
