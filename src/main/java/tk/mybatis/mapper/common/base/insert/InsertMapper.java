@@ -43,5 +43,8 @@ public interface InsertMapper<T> {
      */
     @InsertProvider(type = BaseInsertProvider.class, method = "dynamicSQL")
     int insert(T record);
+    
+    @InsertProvider(type = BaseInsertProvider.class, method = "dynamicSQL")
+    int insertById(T record);
 
 }

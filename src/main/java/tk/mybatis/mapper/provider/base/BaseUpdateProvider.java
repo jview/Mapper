@@ -24,16 +24,11 @@
 
 package tk.mybatis.mapper.provider.base;
 
-import java.util.Set;
-
 import org.apache.ibatis.mapping.MappedStatement;
 
-import tk.mybatis.mapper.entity.EntityColumn;
-import tk.mybatis.mapper.mapperhelper.EntityHelper;
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
 import tk.mybatis.mapper.mapperhelper.MapperTemplate;
 import tk.mybatis.mapper.mapperhelper.SqlHelper;
-import tk.mybatis.mapper.util.StringUtil;
 
 /**
  * BaseUpdateProvider实现类，基础方法实现类
@@ -46,39 +41,6 @@ public class BaseUpdateProvider extends MapperTemplate {
         super(mapperClass, mapperHelper);
     }
     
-    /**
-     * 查询主键Id
-     *
-     * @param ms
-     * @return
-     */
-    public String selectSeqId(MappedStatement ms) {
-        return updateSeqId(ms);
-    }
-    
-    public String nextSeqId(MappedStatement ms) {
-        return updateSeqId(ms);
-    }
-    
-    /**
-     * 查询主键Id
-     *
-     * @param ms
-     * @return
-     */
-    public String updateSeqId(MappedStatement ms) {
-        Class<?> entityClass = getEntityClass(ms);
-        StringBuilder sql = new StringBuilder();
-        //获取全部列
-        Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-        for (EntityColumn column : columnList) {
-        	if (StringUtil.isNotEmpty(column.getSequenceName())) {
-        		sql.append(column.getSequenceName());
-        		break;
-        	}
-        }
-        return sql.toString();
-    }
 
     /**
      * 通过主键更新全部字段

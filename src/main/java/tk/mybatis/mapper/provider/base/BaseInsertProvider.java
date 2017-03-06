@@ -44,7 +44,14 @@ public class BaseInsertProvider extends MapperTemplate {
     public BaseInsertProvider(Class<?> mapperClass, MapperHelper mapperHelper) {
         super(mapperClass, mapperHelper);
     }
-
+    
+    public String insert(MappedStatement ms) {
+    	return insert(ms, true);
+    }
+    
+    public String insertById(MappedStatement ms) {
+    	return insert(ms, false);
+    }
     /**
      * 插入全部,这段代码比较复杂，这里举个例子
      * CountryU生成的insert方法结构如下：
@@ -64,7 +71,7 @@ public class BaseInsertProvider extends MapperTemplate {
      * @param ms
      * @return
      */
-    public String insert(MappedStatement ms) {
+    public String insert(MappedStatement ms, boolean isSeq) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
         //获取全部列
@@ -116,7 +123,7 @@ public class BaseInsertProvider extends MapperTemplate {
             }
             //当属性为null时，如果存在主键策略，会自动获取值，如果不存在，则使用null
             //序列的情况
-            if (StringUtil.isNotEmpty(column.getSequenceName())) {
+            if (isSeq && StringUtil.isNotEmpty(column.getSequenceName())) {
             	seqIdStr=getSeqNextVal(column);
             	//support mysql sequence 用于支持mysql的序列生成
             	if(seqIdStr.indexOf("_nextval(")>0 && seqIdStr.endsWith(".nextval")){
