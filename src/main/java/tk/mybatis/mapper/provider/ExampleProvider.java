@@ -49,9 +49,13 @@ public class ExampleProvider extends MapperTemplate {
     public String selectCountByExample(MappedStatement ms) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
+        if(isCheckExampleEntityClass()){
+            sql.append(SqlHelper.exampleCheck(entityClass));
+        }
         sql.append(SqlHelper.selectCount(entityClass));
         sql.append(SqlHelper.fromTable(entityClass, tableName(entityClass)));
         sql.append(SqlHelper.exampleWhereClause());
+        sql.append(SqlHelper.exampleForUpdate());
         return sql.toString();
     }
     
@@ -70,7 +74,6 @@ public class ExampleProvider extends MapperTemplate {
         return sql.toString();
     }
 
-
     /**
      * 根据Example删除
      *
@@ -80,6 +83,9 @@ public class ExampleProvider extends MapperTemplate {
     public String deleteByExample(MappedStatement ms) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
+        if(isCheckExampleEntityClass()){
+            sql.append(SqlHelper.exampleCheck(entityClass));
+        }
         sql.append(SqlHelper.deleteFromTable(entityClass, tableName(entityClass)));
         sql.append(SqlHelper.exampleWhereClause());
         return sql.toString();
@@ -97,12 +103,16 @@ public class ExampleProvider extends MapperTemplate {
         //将返回值修改为实体类型
         setResultType(ms, entityClass);
         StringBuilder sql = new StringBuilder("SELECT ");
+        if(isCheckExampleEntityClass()){
+            sql.append(SqlHelper.exampleCheck(entityClass));
+        }
         sql.append("<if test=\"distinct\">distinct</if>");
         //支持查询指定列
         sql.append(SqlHelper.exampleSelectColumns(entityClass));
         sql.append(SqlHelper.fromTable(entityClass, tableName(entityClass)));
         sql.append(SqlHelper.exampleWhereClause());
         sql.append(SqlHelper.exampleOrderBy(entityClass));
+        sql.append(SqlHelper.exampleForUpdate());
         return sql.toString();
     }
 
@@ -125,6 +135,9 @@ public class ExampleProvider extends MapperTemplate {
     public String updateByExampleSelective(MappedStatement ms) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
+        if(isCheckExampleEntityClass()){
+            sql.append(SqlHelper.exampleCheck(entityClass));
+        }
         sql.append(SqlHelper.updateTable(entityClass, tableName(entityClass), "example"));
         sql.append(SqlHelper.updateSetColumns(entityClass, "record", true, isNotEmpty()));
         sql.append(SqlHelper.updateByExampleWhereClause());
@@ -140,6 +153,9 @@ public class ExampleProvider extends MapperTemplate {
     public String updateByExample(MappedStatement ms) {
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
+        if(isCheckExampleEntityClass()){
+            sql.append(SqlHelper.exampleCheck(entityClass));
+        }
         sql.append(SqlHelper.updateTable(entityClass, tableName(entityClass), "example"));
         sql.append(SqlHelper.updateSetColumns(entityClass, "record", false, false));
         sql.append(SqlHelper.updateByExampleWhereClause());

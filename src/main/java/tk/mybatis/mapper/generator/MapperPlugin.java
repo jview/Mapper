@@ -34,6 +34,7 @@ import org.mybatis.generator.api.dom.xml.XmlElement;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.internal.util.StringUtility;
+import tk.mybatis.mapper.MapperException;
 
 import java.util.HashSet;
 import java.util.List;
@@ -48,14 +49,24 @@ import java.util.Set;
 public class MapperPlugin extends PluginAdapter {
     private Set<String> mappers = new HashSet<String>();
     private boolean caseSensitive = false;
+    //开始的分隔符，例如mysql为`，sqlserver为[
+    private String beginningDelimiter = "";
+    //结束的分隔符，例如mysql为`，sqlserver为]
+    private String endingDelimiter = "";
+    //数据库模式
+    private String schema;
+    //注释生成器
+    private CommentGeneratorConfiguration commentCfg;
 
     @Override
     public void setContext(Context context) {
         super.setContext(context);
         //设置默认的注释生成器
-        CommentGeneratorConfiguration commentCfg = new CommentGeneratorConfiguration();
+        commentCfg = new CommentGeneratorConfiguration();
         commentCfg.setConfigurationType(MapperCommentGenerator.class.getCanonicalName());
         context.setCommentGeneratorConfiguration(commentCfg);
+        //支持oracle获取注释#114
+        context.getJdbcConnectionConfiguration().addProperty("remarksReporting", "true");
     }
 
     @Override
@@ -67,12 +78,38 @@ public class MapperPlugin extends PluginAdapter {
                 this.mappers.add(mapper);
             }
         } else {
-            throw new RuntimeException("Mapper插件缺少必要的mappers属性!");
+            throw new MapperException("Mapper插件缺少必要的mappers属性!");
         }
         String caseSensitive = this.properties.getProperty("caseSensitive");
         if (StringUtility.stringHasValue(caseSensitive)) {
             this.caseSensitive = caseSensitive.equalsIgnoreCase("TRUE");
         }
+        String beginningDelimiter = this.properties.getProperty("beginningDelimiter");
+        if (StringUtility.stringHasValue(beginningDelimiter)) {
+            this.beginningDelimiter = beginningDelimiter;
+        }
+        commentCfg.addProperty("beginningDelimiter", this.beginningDelimiter);
+        String endingDelimiter = this.properties.getProperty("endingDelimiter");
+        if (StringUtility.stringHasValue(endingDelimiter)) {
+            this.endingDelimiter = endingDelimiter;
+        }
+        commentCfg.addProperty("endingDelimiter", this.endingDelimiter);
+        String schema = this.properties.getProperty("schema");
+        if (StringUtility.stringHasValue(schema)) {
+            this.schema = schema;
+        }
+    }
+
+    public String getDelimiterName(String name) {
+        StringBuilder nameBuilder = new StringBuilder();
+        if (StringUtility.stringHasValue(schema)) {
+            nameBuilder.append(schema);
+            nameBuilder.append(".");
+        }
+        nameBuilder.append(beginningDelimiter);
+        nameBuilder.append(name);
+        nameBuilder.append(endingDelimiter);
+        return nameBuilder.toString();
     }
 
     @Override
@@ -120,9 +157,13 @@ public class MapperPlugin extends PluginAdapter {
         }
         //是否忽略大小写，对于区分大小写的数据库，会有用
         if (caseSensitive && !topLevelClass.getType().getShortName().equals(tableName)) {
-            topLevelClass.addAnnotation("@Table(name = \"" + tableName + "\")");
+            topLevelClass.addAnnotation("@Table(name = \"" + getDelimiterName(tableName) + "\")");
         } else if (!topLevelClass.getType().getShortName().equalsIgnoreCase(tableName)) {
-            topLevelClass.addAnnotation("@Table(name = \"" + tableName + "\")");
+            topLevelClass.addAnnotation("@Table(name = \"" + getDelimiterName(tableName) + "\")");
+        } else if (StringUtility.stringHasValue(schema)
+                || StringUtility.stringHasValue(beginningDelimiter)
+                || StringUtility.stringHasValue(endingDelimiter)) {
+            topLevelClass.addAnnotation("@Table(name = \"" + getDelimiterName(tableName) + "\")");
         }
     }
 

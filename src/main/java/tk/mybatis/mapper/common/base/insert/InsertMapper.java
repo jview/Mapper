@@ -25,6 +25,8 @@
 package tk.mybatis.mapper.common.base.insert;
 
 import org.apache.ibatis.annotations.InsertProvider;
+import org.apache.ibatis.annotations.Options;
+
 import tk.mybatis.mapper.provider.base.BaseInsertProvider;
 
 /**
@@ -41,10 +43,18 @@ public interface InsertMapper<T> {
      * @param record
      * @return
      */
+	@Options(useGeneratedKeys = true, keyProperty = "cid")
     @InsertProvider(type = BaseInsertProvider.class, method = "dynamicSQL")
     int insert(T record);
-    
-    @InsertProvider(type = BaseInsertProvider.class, method = "dynamicSQL")
-    int insertById(T record);
+	
+//	/**
+//     * 保存一个实体，null的属性也会保存，不会使用数据库默认值
+//     *
+//     * @param record
+//     * @return
+//     */
+//	@Options(useGeneratedKeys = true, keyProperty = "cid")
+//    @InsertProvider(type = BaseInsertProvider.class, method = "dynamicSQL")
+//    int insertById(T record);
 
 }

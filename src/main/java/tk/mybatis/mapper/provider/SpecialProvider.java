@@ -45,173 +45,103 @@ public class SpecialProvider extends MapperTemplate {
     public SpecialProvider(Class<?> mapperClass, MapperHelper mapperHelper) {
         super(mapperClass, mapperHelper);
     }
-
+    
     private static String driverName=null;
     private boolean isMysql(MappedStatement ms){
     	boolean isMysql=false;
+    	
     	if(driverName==null){
-    		try {
-				driverName=ms.getConfiguration().getEnvironment().getDataSource().getConnection().getMetaData().getDriverName();;
-			} catch (SQLException e) {
-//				e.printStackTrace();
-				driverName="no";
-			}
+    		synchronized (this) {
+	    		try {
+	    			if(driverName!=null){
+	    				return driverName.toLowerCase().indexOf("mysql")>=0;
+	    			}
+					driverName=ms.getConfiguration().getEnvironment().getDataSource().getConnection().getMetaData().getDriverName();;
+				} catch (SQLException e) {
+	//				e.printStackTrace();
+					driverName="no";
+				}
+    		}
     	}
 //    	System.out.println("-----driverName="+driverName);
     	isMysql=driverName.toLowerCase().indexOf("mysql")>=0;
     	return isMysql;
     }
-    /**
-     * 批量插入
-     *
-     * @param ms
-     */
+
     public String insertList(MappedStatement ms) {
-       if(this.isMysql(ms)){
-    	   return this.insertListMysql(ms);
-       }
-       //用于支持非mysql的数据库
-       else{
-			final Class<?> entityClass = getEntityClass(ms);
-			// 开始拼sql
-			StringBuilder sql = new StringBuilder();
-			sql.append(
-					"<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"\" close=\"\" separator=\";\" >");
-			sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-			sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
-			// 获取全部列
-			Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-			sql.append(" VALUES ");
-			sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
-
-			// 当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
-			String sqlCValue = "";
-			String seqName = null;
-			for (EntityColumn column : columnList) {
-				// 获取id seqName
-				if (column.isId()) {
-					seqName = column.getSequenceName();
-					if (seqName != null && seqName.startsWith("select")) {
-						seqName = seqName.substring("select".length());
-					}
-					sqlCValue += seqName + ",";
-				}
-				if (!column.isId() && column.isInsertable()) {
-					sqlCValue += column.getColumnHolder("item") + ",";
-				}
-			}
-			sql.append(sqlCValue);
-			sql.append("</trim>");
-			sql.append("</foreach>");
-//			System.out.println("-----sql=" + sql.toString());
-			return sql.toString();
-       }
+    	return this.insertList(ms, false);
     }
     
+    public String insertListById(MappedStatement ms) {
+    	return this.insertList(ms, true);
+    }
     /**
      * 批量插入
      *
      * @param ms
+     * @param skipId是否忽略id
      */
-    public String insertListById(MappedStatement ms) {
-       if(this.isMysql(ms)){
-    	   return this.insertListMysqlById(ms);
-       }
-       //用于支持非mysql的数据库
-       else{
-			final Class<?> entityClass = getEntityClass(ms);
-			// 开始拼sql
-			StringBuilder sql = new StringBuilder();
-			sql.append(
-					"<foreach collection=\"list\" item=\"item\" index=\"index\" open=\"\" close=\"\" separator=\";\" >");
-			sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-			sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
-			// 获取全部列
-			Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-			sql.append(" VALUES ");
-			sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
-
-			// 当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
-			String sqlCValue = "";
-			String seqName = null;
-			for (EntityColumn column : columnList) {
-				// 获取id seqName
-				if (column.isInsertable()) {
-					sqlCValue += column.getColumnHolder("item") + ",";
-				}
-			}
-			sql.append(sqlCValue);
-			sql.append("</trim>");
-			sql.append("</foreach>");
-//			System.out.println("-----sql=" + sql.toString());
-			return sql.toString();
-       }
-    }
-    
-    private String insertListMysql(MappedStatement ms) {
-		final Class<?> entityClass = getEntityClass(ms);
-		// 开始拼sql
-		StringBuilder sql = new StringBuilder();
-		sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-		sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
-		sql.append(" VALUES ");
-		sql.append("<foreach collection=\"list\" item=\"item\" separator=\",\" >");
-		sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
-		// 获取全部列
-		Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-
-		// 当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
-		String seqName = null;
-		for (EntityColumn column : columnList) {
-			// 获取id seqName
+    public String insertList(MappedStatement ms, boolean skipId) {
+//    	boolean skipId=true;
+        boolean notNull=false;
+        boolean notEmpty=false;
+        final Class<?> entityClass = getEntityClass(ms);
+        //开始拼sql
+        StringBuilder sql = new StringBuilder();
+        sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.insertColumns(entityClass, skipId, notNull, notEmpty));
+        sql.append(" VALUES ");
+        sql.append("<foreach collection=\"list\" item=\"record\" separator=\",\" >");
+        sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
+        //获取全部列
+        Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
+        //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
+        String columnHolder=null;
+        for (EntityColumn column : columnList) {
+//            if (!column.isId() && column.isInsertable()) {
+//                sql.append(column.getColumnHolder("record") + ",");
+//            }
+        	if (!column.isInsertable()) {
+                continue;
+            }
+            if (skipId && column.isId()) {
+                continue;
+            }
+            columnHolder=column.getColumnHolder("record");
+        	// 获取id seqName
 			if (column.isId()) {
-				seqName = column.getSequenceName();
+				String	seqName = column.getSequenceName();
 				if (seqName != null && seqName.startsWith("select")) {
 					seqName = seqName.substring("select".length());
 				}
-				sql.append(seqName + ",");
+//				sql.append(seqName + ",");
+				 sql.append(SqlHelper.getIfIsNull("record", column, seqName + " ,", notEmpty));
+				 sql.append(SqlHelper.getIfNotNull("record", column, columnHolder + " ,", notEmpty));
 			}
-			if (!column.isId() && column.isInsertable()) {
-				sql.append(column.getColumnHolder("item") + ",");
+			else{
+				sql.append(columnHolder + ",");
 			}
-		}
-		sql.append("</trim>");
-		sql.append("</foreach>");
-		if(" _nextval('_yc_orderPayFlow_cid_seq')".equals(seqName)){
-			System.out.println("-----sql="+sql.toString());
-		}
-		return sql.toString();
-    	
+        }
+        sql.append("</trim>");
+        sql.append("</foreach>");
+        return sql.toString();
+    }
+
+    /**
+     * 插入，主键id，自增
+     *
+     * @param ms
+     */
+    public String insertUseGeneratedKeys(MappedStatement ms) {
+        final Class<?> entityClass = getEntityClass(ms);
+        //开始拼sql
+        StringBuilder sql = new StringBuilder();
+        sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.insertColumns(entityClass, true, false, false));
+        sql.append(SqlHelper.insertValuesColumns(entityClass, true, false, false));
+        return sql.toString();
     }
     
-    private String insertListMysqlById(MappedStatement ms) {
-		final Class<?> entityClass = getEntityClass(ms);
-		// 开始拼sql
-		StringBuilder sql = new StringBuilder();
-		sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-		sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
-		sql.append(" VALUES ");
-		sql.append("<foreach collection=\"list\" item=\"item\" separator=\",\" >");
-		sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
-		// 获取全部列
-		Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-
-		// 当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
-		String seqName = null;
-		for (EntityColumn column : columnList) {
-			
-			if (column.isInsertable()) {
-				sql.append(column.getColumnHolder("item") + ",");
-			}
-		}
-		sql.append("</trim>");
-		sql.append("</foreach>");
-		if(" _nextval('_yc_orderPayFlow_cid_seq')".equals(seqName)){
-			System.out.println("-----sql="+sql.toString());
-		}
-		return sql.toString();
-    	
-    }
     
     /**
      * 批量修改
@@ -233,7 +163,6 @@ public class SpecialProvider extends MapperTemplate {
         sql.append(SqlHelper.updateSetColumns(entityClass, "item", true, isNotEmpty()));
         sql.append(this.wherePKColumns(entityClass, "item"));
         sql.append("</foreach>");
-//        System.out.println("----update="+sql);
         return sql.toString();
     }
     
@@ -272,18 +201,6 @@ public class SpecialProvider extends MapperTemplate {
         return sql.toString();
     }
 
-    /**
-     * 插入，主键id，自增
-     *
-     * @param ms
-     */
-    public String insertUseGeneratedKeys(MappedStatement ms) {
-        final Class<?> entityClass = getEntityClass(ms);
-        //开始拼sql
-        StringBuilder sql = new StringBuilder();
-        sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-        sql.append(SqlHelper.insertColumns(entityClass, true, false, false));
-        sql.append(SqlHelper.insertValuesColumns(entityClass, true, false, false));
-        return sql.toString();
-    }
+    
+    
 }

@@ -24,6 +24,10 @@
 
 package tk.mybatis.mapper.common.base.select;
 
+import java.util.List;
+
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.SelectProvider;
 import tk.mybatis.mapper.provider.base.BaseSelectProvider;
 
@@ -47,10 +51,20 @@ public interface SelectCountMapper<T> {
     @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
     Long selectMaxCid(T record);
     
+    @Options(useCache = false, flushCache = true)
     @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
     Long selectSeqId(T record);
     
+    @Options(useCache = false, flushCache = true)
+    @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
+    List<Long> selectSeqIds(T record, @Param("batchSize") Integer batchSize);
+    
+    @Options(useCache = false, flushCache = true)
     @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
     Long nextSeqId(T record);
+    
+    @Options(useCache = false, flushCache = true)
+    @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
+    List<Long> nextSeqIds(T record, @Param("batchSize") Integer batchSize);
 
 }

@@ -24,12 +24,7 @@
 
 package tk.mybatis.mapper.common;
 
-import tk.mybatis.mapper.common.example.DeleteByExampleMapper;
-import tk.mybatis.mapper.common.example.SelectByExampleMapper;
-import tk.mybatis.mapper.common.example.SelectCountByExampleMapper;
-import tk.mybatis.mapper.common.example.SelectMaxModifyDateByExampleMapper;
-import tk.mybatis.mapper.common.example.UpdateByExampleMapper;
-import tk.mybatis.mapper.common.example.UpdateByExampleSelectiveMapper;
+import tk.mybatis.mapper.common.example.*;
 
 /**
  * 通用Mapper接口,Example查询

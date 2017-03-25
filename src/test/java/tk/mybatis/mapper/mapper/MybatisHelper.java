@@ -29,6 +29,7 @@ import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import tk.mybatis.mapper.common.IdsMapper;
 import tk.mybatis.mapper.common.Mapper;
 import tk.mybatis.mapper.common.MySqlMapper;
 import tk.mybatis.mapper.common.SqlServerMapper;
@@ -72,6 +73,10 @@ public class MybatisHelper {
                 // 3.3.1版本增加
                 config.setEnableMethodAnnotation(true);
                 config.setNotEmpty(true);
+                //校验Example中的类型是否一致
+                config.setCheckExampleEntityClass(true);
+                //启用简单类型
+                config.setUseSimpleType(true);
                 // 序列的获取规则,使用{num}格式化参数，默认值为{0}.nextval，针对Oracle
                 // 可选参数一共3个，对应0,1,2,分别为SequenceName，ColumnName, PropertyName
                 //config.setSeqFormat("NEXT VALUE FOR {0}");
@@ -89,6 +94,7 @@ public class MybatisHelper {
                 mapperHelper.registerMapper(HsqldbMapper.class);
                 mapperHelper.registerMapper(MySqlMapper.class);
                 mapperHelper.registerMapper(SqlServerMapper.class);
+                mapperHelper.registerMapper(IdsMapper.class);
                 //配置完成后，执行下面的操作
                 mapperHelper.processConfiguration(session.getConfiguration());
                 //OK - mapperHelper的任务已经完成，可以不管了

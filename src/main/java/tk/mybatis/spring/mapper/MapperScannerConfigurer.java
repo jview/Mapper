@@ -24,16 +24,15 @@
 
 package tk.mybatis.spring.mapper;
 
-import java.util.Properties;
-
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
-
 import tk.mybatis.mapper.common.Marker;
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
 import tk.mybatis.mapper.mapperhelper.SqlHelper;
 import tk.mybatis.mapper.util.StringUtil;
+
+import java.util.Properties;
 
 
 public class MapperScannerConfigurer extends org.mybatis.spring.mapper.MapperScannerConfigurer {

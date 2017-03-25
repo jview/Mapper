@@ -39,6 +39,6 @@ public interface MySqlMapper<T> extends
         InsertListMapper<T>,
         InsertUseGeneratedKeysMapper<T>,
         UpdateListByIdMapper<T>,
-		UpdateListByIdSelectiveMapper<T>{
+		UpdateListByIdSelectiveMapper<T> {
 
 }

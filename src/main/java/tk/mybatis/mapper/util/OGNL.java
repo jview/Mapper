@@ -24,6 +24,7 @@
 
 package tk.mybatis.mapper.util;
 
+import tk.mybatis.mapper.MapperException;
 import tk.mybatis.mapper.entity.Example;
 import tk.mybatis.mapper.entity.IDynamicTableName;
 
@@ -33,6 +34,25 @@ import tk.mybatis.mapper.entity.IDynamicTableName;
  * @author liuzh
  */
 public abstract class OGNL {
+
+    /**
+     * 校验通用 Example 的 entityClass 和当前方法是否匹配
+     *
+     * @param parameter
+     * @param entityFullName
+     * @return
+     */
+    public static boolean checkExampleEntityClass(Object parameter, String entityFullName) {
+        if (parameter != null && parameter instanceof Example && StringUtil.isNotEmpty(entityFullName)) {
+            Example example = (Example) parameter;
+            Class<?> entityClass = example.getEntityClass();
+            if(!entityClass.getCanonicalName().equals(entityFullName)){
+                throw new MapperException("当前 Example 方法对应实体为:" + entityFullName
+                        + ", 但是参数 Example 中的 entityClass 为:" + entityClass.getCanonicalName());
+            }
+        }
+        return true;
+    }
 
     /**
      * 是否包含自定义查询列
@@ -46,6 +66,34 @@ public abstract class OGNL {
             if (example.getSelectColumns() != null && example.getSelectColumns().size() > 0) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * 是否包含自定义 Count 列
+     *
+     * @param parameter
+     * @return
+     */
+    public static boolean hasCountColumn(Object parameter) {
+        if (parameter != null && parameter instanceof Example) {
+            Example example = (Example) parameter;
+            return StringUtil.isNotEmpty(example.getCountColumn());
+        }
+        return false;
+    }
+
+    /**
+     * 是否包含 forUpdate
+     *
+     * @param parameter
+     * @return
+     */
+    public static boolean hasForUpdate(Object parameter) {
+        if (parameter != null && parameter instanceof Example) {
+            Example example = (Example) parameter;
+            return example.isForUpdate();
         }
         return false;
     }

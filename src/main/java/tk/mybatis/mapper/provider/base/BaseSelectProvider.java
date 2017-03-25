@@ -65,6 +65,10 @@ public class BaseSelectProvider extends MapperTemplate {
         return nextSeqId(ms);
     }
     
+    public String selectSeqIds(MappedStatement ms) {
+        return nextSeqIds(ms);
+    }
+    
     /**
      * 查询主键Id
      *
@@ -84,8 +88,25 @@ public class BaseSelectProvider extends MapperTemplate {
         }
         return sql.toString();
     }
+    
+    public String nextSeqIds(MappedStatement ms) {
+        Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        
+//        System.out.println(ms.getParameterMap().getId()+" "+ms.getParameterMap().getParameterMappings().size());
+        
+        //获取全部列
+        Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
+        for (EntityColumn column : columnList) {
+        	if (StringUtil.isNotEmpty(column.getSequenceName())) {
+        		sql.append(column.getSequenceName() +"  from tf_num ");
+        		sql.append("<if test=\"batchSize!=null\" > limit #{batchSize}</if>");
+        		break;
+        	}
+        }
+        return sql.toString();
+    }
    
-
     /**
      * 查询
      *
@@ -161,8 +182,21 @@ public class BaseSelectProvider extends MapperTemplate {
         sql.append(SqlHelper.whereAllIfColumns(entityClass, isNotEmpty()));
         return sql.toString();
     }
-    
-   
+
+    /**
+     * 根据主键查询总数
+     *
+     * @param ms
+     * @return
+     */
+    public String existsWithPrimaryKey(MappedStatement ms) {
+        Class<?> entityClass = getEntityClass(ms);
+        StringBuilder sql = new StringBuilder();
+        sql.append(SqlHelper.selectCountExists(entityClass));
+        sql.append(SqlHelper.fromTable(entityClass, tableName(entityClass)));
+        sql.append(SqlHelper.wherePKColumns(entityClass));
+        return sql.toString();
+    }
 
     /**
      * 查询全部结果

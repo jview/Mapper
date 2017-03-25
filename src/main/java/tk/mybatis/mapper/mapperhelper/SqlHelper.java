@@ -24,12 +24,12 @@
 
 package tk.mybatis.mapper.mapperhelper;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import tk.mybatis.mapper.entity.EntityColumn;
 import tk.mybatis.mapper.entity.IDynamicTableName;
 import tk.mybatis.mapper.util.StringUtil;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * 拼常用SQL的工具类
@@ -38,6 +38,7 @@ import tk.mybatis.mapper.util.StringUtil;
  * @since 2015-11-03 22:40
  */
 public class SqlHelper {
+	
 	private static Set<String> ignoreColumnSet=new HashSet<String>();
 	private static Set<String> ignoreColumnAllSet=new HashSet<String>();
 	public static void addIgnore(Class<?> entityClass, String propertyName){
@@ -66,11 +67,6 @@ public class SqlHelper {
 			isIgnore=true;
     	}
     	return isIgnore;
-	}
-	
-	public static String getIgnoreProperties(String className){
-		String columns="";
-		return columns;
 	}
 
     /**
@@ -276,7 +272,7 @@ public class SqlHelper {
         }
         return rSql;
     }
-    
+
     public static String getAllProperties(Class<?> entityClass, String ignoreProperties) {
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         StringBuilder sql = new StringBuilder();
@@ -310,7 +306,6 @@ public class SqlHelper {
         }
         return rSql;
     }
-
     /**
      * select xxx,xxx...
      *
@@ -322,24 +317,6 @@ public class SqlHelper {
         sql.append("SELECT ");
         sql.append(getAllColumns(entityClass));
         sql.append(" ");
-        return sql.toString();
-    }
-
-    /**
-     * select count(x)
-     *
-     * @param entityClass
-     * @return
-     */
-    public static String selectCount(Class<?> entityClass) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT ");
-        Set<EntityColumn> pkColumns = EntityHelper.getPKColumns(entityClass);
-        if (pkColumns.size() == 1) {
-            sql.append("COUNT(").append(pkColumns.iterator().next().getColumn()).append(") ");
-        } else {
-            sql.append("COUNT(*) ");
-        }
         return sql.toString();
     }
     
@@ -364,6 +341,43 @@ public class SqlHelper {
     public static String selectMaxCid(Class<?> entityClass) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT max(cid) ");
+        return sql.toString();
+    }
+
+    /**
+     * select count(x)
+     *
+     * @param entityClass
+     * @return
+     */
+    public static String selectCount(Class<?> entityClass) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        Set<EntityColumn> pkColumns = EntityHelper.getPKColumns(entityClass);
+        if (pkColumns.size() == 1) {
+            sql.append("COUNT(").append(pkColumns.iterator().next().getColumn()).append(") ");
+        } else {
+            sql.append("COUNT(*) ");
+        }
+        return sql.toString();
+    }
+
+    /**
+     * select case when count(x) > 0 then 1 else 0 end
+     *
+     * @param entityClass
+     * @return
+     */
+    public static String selectCountExists(Class<?> entityClass) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT CASE WHEN ");
+        Set<EntityColumn> pkColumns = EntityHelper.getPKColumns(entityClass);
+        if (pkColumns.size() == 1) {
+            sql.append("COUNT(").append(pkColumns.iterator().next().getColumn()).append(") ");
+        } else {
+            sql.append("COUNT(*) ");
+        }
+        sql.append(" > 0 THEN 1 ELSE 0 END AS result ");
         return sql.toString();
     }
 
@@ -451,7 +465,6 @@ public class SqlHelper {
     public static String insertColumns(Class<?> entityClass, boolean skipId, boolean notNull, boolean notEmpty) {
         StringBuilder sql = new StringBuilder();
         sql.append("<trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
-        String className=entityClass.getName();
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
@@ -486,7 +499,6 @@ public class SqlHelper {
         sql.append("<trim prefix=\"VALUES (\" suffix=\")\" suffixOverrides=\",\">");
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
-        String className=entityClass.getName();
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
         for (EntityColumn column : columnList) {
             if (!column.isInsertable()) {
@@ -495,7 +507,16 @@ public class SqlHelper {
             if (skipId && column.isId()) {
                 continue;
             }
-            if (notNull) {
+            if (column.isId() && StringUtil.isNotEmpty(column.getSequenceName())) {
+            	String seqName=column.getSequenceName();
+            	if(seqName!=null){
+            		if(seqName.startsWith("select")){
+            			seqName=seqName.substring("select".length());
+            		}
+            	}
+        		sql.append(seqName+",");
+        	}
+            else if (notNull) {
                 sql.append(SqlHelper.getIfNotNull(column, column.getColumnHolder() + ",", notEmpty));
             } else {
                 sql.append(column.getColumnHolder() + ",");
@@ -517,7 +538,6 @@ public class SqlHelper {
     public static String updateSetColumns(Class<?> entityClass, String entityName, boolean notNull, boolean notEmpty) {
         StringBuilder sql = new StringBuilder();
         sql.append("<set>");
-        String className=entityClass.getName();
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //当某个列有主键策略时，不需要考虑他的属性是否为空，因为如果为空，一定会根据主键策略给他生成一个值
@@ -608,6 +628,28 @@ public class SqlHelper {
     }
 
     /**
+     * example支持查询指定列时
+     *
+     * @return
+     */
+    public static String exampleCountColumn(Class<?> entityClass) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("<choose>");
+        sql.append("<when test=\"@tk.mybatis.mapper.util.OGNL@hasCountColumn(_parameter)\">");
+        sql.append("COUNT(${countColumn})");
+        sql.append("</when>");
+        sql.append("<otherwise>");
+        sql.append("COUNT(0)");
+        sql.append("</otherwise>");
+        sql.append("</choose>");
+        //不支持指定列的时候查询全部列
+        sql.append("<if test=\"@tk.mybatis.mapper.util.OGNL@hasNoSelectColumns(_parameter)\">");
+        sql.append(getAllColumns(entityClass));
+        sql.append("</if>");
+        return sql.toString();
+    }
+
+    /**
      * example查询中的orderBy条件，会判断默认orderBy
      *
      * @return
@@ -623,6 +665,32 @@ public class SqlHelper {
             sql.append("ORDER BY " + orderByClause);
             sql.append("</if>");
         }
+        return sql.toString();
+    }
+
+    /**
+     * example 支持 for update
+     *
+     * @return
+     */
+    public static String exampleForUpdate() {
+        StringBuilder sql = new StringBuilder();
+        sql.append("<if test=\"@tk.mybatis.mapper.util.OGNL@hasForUpdate(_parameter)\">");
+        sql.append("FOR UPDATE");
+        sql.append("</if>");
+        return sql.toString();
+    }
+
+    /**
+     * example 支持 for update
+     *
+     * @return
+     */
+    public static String exampleCheck(Class<?> entityClass) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("<bind name=\"checkExampleEntityClass\" value=\"@tk.mybatis.mapper.util.OGNL@checkExampleEntityClass(_parameter, '");
+        sql.append(entityClass.getCanonicalName());
+        sql.append("')\"/>");
         return sql.toString();
     }
 

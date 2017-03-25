@@ -27,6 +27,7 @@ package tk.mybatis.mapper.entity;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
 import org.apache.ibatis.type.TypeHandler;
+import tk.mybatis.mapper.MapperException;
 import tk.mybatis.mapper.mapperhelper.EntityHelper;
 import tk.mybatis.mapper.util.StringUtil;
 
@@ -46,7 +47,11 @@ public class Example implements IDynamicTableName {
 
     protected boolean notNull;
 
+    protected boolean forUpdate;
+
     protected Set<String> selectColumns;
+
+    protected String countColumn;
 
     protected List<Criteria> oredCriteria;
 
@@ -91,10 +96,8 @@ public class Example implements IDynamicTableName {
         oredCriteria = new ArrayList<Criteria>();
         this.entityClass = entityClass;
         table = EntityHelper.getEntityTable(entityClass);
-        propertyMap = new HashMap<String, EntityColumn>(table.getEntityClassColumns().size());
-        for (EntityColumn column : table.getEntityClassColumns()) {
-            propertyMap.put(column.getProperty(), column);
-        }
+        //根据李领北建议修改#159
+        propertyMap = table.getPropertyMap();
         this.ORDERBY = new OrderBy(this, propertyMap);
     }
 
@@ -131,7 +134,7 @@ public class Example implements IDynamicTableName {
             if (propertyMap.containsKey(property)) {
                 return propertyMap.get(property).getColumn();
             } else if (notNull) {
-                throw new RuntimeException("当前实体类不包含名为" + property + "的属性!");
+                throw new MapperException("当前实体类不包含名为" + property + "的属性!");
             } else {
                 return null;
             }
@@ -193,12 +196,35 @@ public class Example implements IDynamicTableName {
         return this;
     }
 
+    public String getCountColumn() {
+        return countColumn;
+    }
+
+    /**
+     * 指定 count(property) 查询属性
+     *
+     * @param property
+     */
+    public void setCountProperty(String property) {
+        if (propertyMap.containsKey(property)) {
+            this.countColumn = propertyMap.get(property).getColumn();
+        }
+    }
+
     public boolean isDistinct() {
         return distinct;
     }
 
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
+    }
+
+    public boolean isForUpdate() {
+        return forUpdate;
+    }
+
+    public void setForUpdate(boolean forUpdate) {
+        this.forUpdate = forUpdate;
     }
 
     public List<Criteria> getOredCriteria() {
@@ -269,7 +295,7 @@ public class Example implements IDynamicTableName {
             if (propertyMap.containsKey(property)) {
                 return propertyMap.get(property).getColumn();
             } else if (exists) {
-                throw new RuntimeException("当前实体类不包含名为" + property + "的属性!");
+                throw new MapperException("当前实体类不包含名为" + property + "的属性!");
             } else {
                 return null;
             }
@@ -279,7 +305,7 @@ public class Example implements IDynamicTableName {
             if (propertyMap.containsKey(property)) {
                 return property;
             } else if (exists) {
-                throw new RuntimeException("当前实体类不包含名为" + property + "的属性!");
+                throw new MapperException("当前实体类不包含名为" + property + "的属性!");
             } else {
                 return null;
             }
@@ -299,7 +325,7 @@ public class Example implements IDynamicTableName {
 
         protected void addCriterion(String condition) {
             if (condition == null) {
-                throw new RuntimeException("Value for condition cannot be null");
+                throw new MapperException("Value for condition cannot be null");
             }
             if (condition.startsWith("null")) {
                 return;
@@ -310,7 +336,7 @@ public class Example implements IDynamicTableName {
         protected void addCriterion(String condition, Object value, String property) {
             if (value == null) {
                 if (notNull) {
-                    throw new RuntimeException("Value for " + property + " cannot be null");
+                    throw new MapperException("Value for " + property + " cannot be null");
                 } else {
                     return;
                 }
@@ -324,7 +350,7 @@ public class Example implements IDynamicTableName {
         protected void addCriterion(String condition, Object value1, Object value2, String property) {
             if (value1 == null || value2 == null) {
                 if (notNull) {
-                    throw new RuntimeException("Between values for " + property + " cannot be null");
+                    throw new MapperException("Between values for " + property + " cannot be null");
                 } else {
                     return;
                 }
@@ -375,12 +401,12 @@ public class Example implements IDynamicTableName {
             return (Criteria) this;
         }
 
-        public Criteria andIn(String property, Collection<?> values) {
+        public Criteria andIn(String property, Iterable values) {
             addCriterion(column(property) + " in", values, property(property));
             return (Criteria) this;
         }
 
-        public Criteria andNotIn(String property, Collection<?> values) {
+        public Criteria andNotIn(String property, Iterable values) {
             addCriterion(column(property) + " not in", values, property(property));
             return (Criteria) this;
         }
@@ -475,6 +501,29 @@ public class Example implements IDynamicTableName {
                     //属性值不为空
                     if (value != null) {
                         andEqualTo(property, value);
+                    }
+                }
+            }
+            return (Criteria) this;
+        }
+
+        /**
+         * 将此对象的所有字段参数作为相等查询条件，如果字段为 null，则为 is null
+         *
+         * @param param 参数对象
+         */
+        public Criteria andAllEqualTo(Object param) {
+            MetaObject metaObject = SystemMetaObject.forObject(param);
+            String[] properties = metaObject.getGetterNames();
+            for (String property : properties) {
+                //属性和列对应Map中有此属性
+                if (propertyMap.get(property) != null) {
+                    Object value = metaObject.getValue(property);
+                    //属性值不为空
+                    if (value != null) {
+                        andEqualTo(property, value);
+                    } else {
+                        andIsNull(property);
                     }
                 }
             }

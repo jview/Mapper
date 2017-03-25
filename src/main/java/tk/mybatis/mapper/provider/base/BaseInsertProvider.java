@@ -25,6 +25,7 @@
 package tk.mybatis.mapper.provider.base;
 
 import org.apache.ibatis.mapping.MappedStatement;
+import tk.mybatis.mapper.MapperException;
 import tk.mybatis.mapper.entity.EntityColumn;
 import tk.mybatis.mapper.mapperhelper.EntityHelper;
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
@@ -46,12 +47,14 @@ public class BaseInsertProvider extends MapperTemplate {
     }
     
     public String insert(MappedStatement ms) {
-    	return insert(ms, true);
+    	return this.insert(ms, false);
     }
     
     public String insertById(MappedStatement ms) {
-    	return insert(ms, false);
+    	return this.insert(ms, true);
     }
+
+
     /**
      * 插入全部,这段代码比较复杂，这里举个例子
      * CountryU生成的insert方法结构如下：
@@ -68,22 +71,45 @@ public class BaseInsertProvider extends MapperTemplate {
      &lt;/trim&gt;
      </pre>
      *
+     *<selectKey resultType="java.lang.Long" order="BEFORE" keyProperty="cid">
+		select _nextval('_tf_sysconfig_cid_seq')
+	</selectKey>
      * @param ms
      * @return
      */
-    public String insert(MappedStatement ms, boolean isSeq) {
+    private String insert(MappedStatement ms, boolean skipId) {
+//    	 boolean skipId=false;
+         boolean notNull=false;
+         boolean notEmpty=false;
         Class<?> entityClass = getEntityClass(ms);
         StringBuilder sql = new StringBuilder();
         //获取全部列
         Set<EntityColumn> columnList = EntityHelper.getColumns(entityClass);
         //Identity列只能有一个
         Boolean hasIdentityKey = false;
+//        for (EntityColumn column : columnList) {
+//        	if (StringUtil.isNotEmpty(column.getSequenceName()) && column.isIdentity()) {
+//        		sql.append("<selectKey resultType=\"java.lang.Long\" order=\"BEFORE\" keyProperty=\"cid\">\n");
+//            	sql.append("	"+column.getSequenceName()+"\n");
+//            	sql.append("</selectKey>");
+//            	break;
+//        	}
+//        }
+        
         //先处理cache或bind节点
         for (EntityColumn column : columnList) {
             if (!column.isInsertable()) {
                 continue;
             }
+            if (skipId && column.isId()) {
+                continue;
+            }
             if (StringUtil.isNotEmpty(column.getSequenceName())) {
+            	if(column.isIdentity()){
+            		//插入selectKey
+            		newSelectKeyMappedStatement(ms, column);
+            		hasIdentityKey=true;
+            	}
             } else if (column.isIdentity()) {
                 //这种情况下,如果原先的字段有值,需要先缓存起来,否则就一定会使用自动增长
                 //这是一个bind节点
@@ -95,7 +121,7 @@ public class BaseInsertProvider extends MapperTemplate {
                     if (column.getGenerator() != null && column.getGenerator().equals("JDBC")) {
                         continue;
                     }
-                    throw new RuntimeException(ms.getId() + "对应的实体类" + entityClass.getCanonicalName() + "中包含多个MySql的自动增长列,最多只能有一个!");
+                    throw new MapperException(ms.getId() + "对应的实体类" + entityClass.getCanonicalName() + "中包含多个MySql的自动增长列,最多只能有一个!");
                 }
                 //插入selectKey
                 newSelectKeyMappedStatement(ms, column);
@@ -106,11 +132,13 @@ public class BaseInsertProvider extends MapperTemplate {
             }
         }
         sql.append(SqlHelper.insertIntoTable(entityClass, tableName(entityClass)));
-        sql.append(SqlHelper.insertColumns(entityClass, false, false, false));
+        sql.append(SqlHelper.insertColumns(entityClass, skipId, notNull, notEmpty));
         sql.append("<trim prefix=\"VALUES(\" suffix=\")\" suffixOverrides=\",\">");
-        String seqIdStr=null;
         for (EntityColumn column : columnList) {
             if (!column.isInsertable()) {
+                continue;
+            }
+            if (skipId && column.isId()) {
                 continue;
             }
             //优先使用传入的属性值,当原属性property!=null时，用原属性
@@ -123,13 +151,19 @@ public class BaseInsertProvider extends MapperTemplate {
             }
             //当属性为null时，如果存在主键策略，会自动获取值，如果不存在，则使用null
             //序列的情况
-            if (isSeq && StringUtil.isNotEmpty(column.getSequenceName())) {
-            	seqIdStr=getSeqNextVal(column);
-            	//support mysql sequence 用于支持mysql的序列生成
-            	if(seqIdStr.indexOf("_nextval(")>0 && seqIdStr.endsWith(".nextval")){
-            		seqIdStr=seqIdStr.substring(seqIdStr.indexOf("_nextval("),  seqIdStr.length()-".nextval".length());
+            if (StringUtil.isNotEmpty(column.getSequenceName())) {
+            	if(column.isIdentity()){
+//            		System.out.println("----columnHolder="+column.getColumnHolder());
+            		sql.append(SqlHelper.getIfCacheIsNull(column, column.getColumnHolder() + ","));
             	}
-                sql.append(SqlHelper.getIfIsNull(column, seqIdStr + " ,", false));
+            	else{
+	            	String seqIdStr=getSeqNextVal(column);
+	            	//support mysql sequence 用于支持mysql的序列生成
+	            	if(seqIdStr.indexOf("_nextval(")>0 && seqIdStr.endsWith(".nextval")){
+	            		seqIdStr=seqIdStr.substring(seqIdStr.indexOf("_nextval("),  seqIdStr.length()-".nextval".length());
+	            	}
+	                sql.append(SqlHelper.getIfIsNull(column, seqIdStr + " ,", false));
+            	}
             } else if (column.isIdentity()) {
                 sql.append(SqlHelper.getIfCacheIsNull(column, column.getColumnHolder() + ","));
             } else if (column.isUuid()) {
@@ -140,7 +174,8 @@ public class BaseInsertProvider extends MapperTemplate {
             }
         }
         sql.append("</trim>");
-//        System.out.println("----sql="+sql.toString());
+        if(hasIdentityKey)
+        	System.out.println("---insert sql="+sql);
         return sql.toString();
     }
 
@@ -193,7 +228,7 @@ public class BaseInsertProvider extends MapperTemplate {
                     if (column.getGenerator() != null && column.getGenerator().equals("JDBC")) {
                         continue;
                     }
-                    throw new RuntimeException(ms.getId() + "对应的实体类" + entityClass.getCanonicalName() + "中包含多个MySql的自动增长列,最多只能有一个!");
+                    throw new MapperException(ms.getId() + "对应的实体类" + entityClass.getCanonicalName() + "中包含多个MySql的自动增长列,最多只能有一个!");
                 }
                 //插入selectKey
                 newSelectKeyMappedStatement(ms, column);

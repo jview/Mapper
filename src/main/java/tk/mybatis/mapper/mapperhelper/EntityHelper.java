@@ -24,27 +24,11 @@
 
 package tk.mybatis.mapper.mapperhelper;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.persistence.Column;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OrderBy;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.UnknownTypeHandler;
-
+import tk.mybatis.mapper.MapperException;
 import tk.mybatis.mapper.annotation.ColumnType;
 import tk.mybatis.mapper.annotation.NameStyle;
 import tk.mybatis.mapper.code.IdentityDialect;
@@ -53,7 +37,11 @@ import tk.mybatis.mapper.entity.Config;
 import tk.mybatis.mapper.entity.EntityColumn;
 import tk.mybatis.mapper.entity.EntityField;
 import tk.mybatis.mapper.entity.EntityTable;
+import tk.mybatis.mapper.util.SimpleTypeUtil;
 import tk.mybatis.mapper.util.StringUtil;
+
+import javax.persistence.*;
+import java.util.*;
 
 /**
  * 实体类工具类 - 处理实体和数据库表以及字段关键的一个类
@@ -64,8 +52,6 @@ import tk.mybatis.mapper.util.StringUtil;
  */
 public class EntityHelper {
 	private static final Log logger = LogFactory.getLog(EntityHelper.class);
-	
-
     /**
      * 实体类 => 表对象
      */
@@ -80,7 +66,7 @@ public class EntityHelper {
     public static EntityTable getEntityTable(Class<?> entityClass) {
         EntityTable entityTable = entityTableMap.get(entityClass);
         if (entityTable == null) {
-            throw new RuntimeException("无法获取实体类" + entityClass.getCanonicalName() + "对应的表名!");
+            throw new MapperException("无法获取实体类" + entityClass.getCanonicalName() + "对应的表名!");
         }
         return entityTable;
     }
@@ -118,6 +104,7 @@ public class EntityHelper {
      * @return
      */
     public static Set<EntityColumn> getColumns(Class<?> entityClass) {
+//        return getEntityTable(entityClass).getEntityClassColumns();
     	//移除忽略的属性
     	String className=entityClass.getName();
     	Set<EntityColumn> setR=new HashSet<EntityColumn>();
@@ -255,13 +242,22 @@ public class EntityHelper {
         } else {
             fields = FieldHelper.getFields(entityClass);
         }
+        SequenceGenerator sequenceGenerator = entityClass.getAnnotation(SequenceGenerator.class);
+//        if(sequenceGenerator!=null){
+//        	System.out.println("-----"+sequenceGenerator.name()+" "+sequenceGenerator.sequenceName());
+//        }
         for (EntityField field : fields) {
-            processField(entityTable, style, field);
+            //如果启用了简单类型，就做简单类型校验，如果不是简单类型，直接跳过
+            if(config.isUseSimpleType() && !SimpleTypeUtil.isSimpleType(field.getJavaType())){
+                continue;
+            }
+            processField(entityTable, style, field, sequenceGenerator);
         }
         //当pk.size=0的时候使用所有列作为主键
         if (entityTable.getEntityClassPKColumns().size() == 0) {
             entityTable.setEntityClassPKColumns(entityTable.getEntityClassColumns());
         }
+        entityTable.initPropertyMap();
         entityTableMap.put(entityClass, entityTable);
     }
 
@@ -272,7 +268,7 @@ public class EntityHelper {
      * @param style
      * @param field
      */
-    private static void processField(EntityTable entityTable, Style style, EntityField field) {
+    private static void processField(EntityTable entityTable, Style style, EntityField field, SequenceGenerator sequenceGenerator) {
         //排除字段
         if (field.isAnnotationPresent(Transient.class)) {
             return;
@@ -322,9 +318,9 @@ public class EntityHelper {
         }
         //主键策略 - Oracle序列，MySql自动增长，UUID
         if (field.isAnnotationPresent(SequenceGenerator.class)) {
-            SequenceGenerator sequenceGenerator = field.getAnnotation(SequenceGenerator.class);
+            sequenceGenerator = field.getAnnotation(SequenceGenerator.class);
             if (sequenceGenerator.sequenceName().equals("")) {
-                throw new RuntimeException(entityTable.getEntityClass() + "字段" + field.getName() + "的注解@SequenceGenerator未指定sequenceName!");
+                throw new MapperException(entityTable.getEntityClass() + "字段" + field.getName() + "的注解@SequenceGenerator未指定sequenceName!");
             }
             entityColumn.setSequenceName(sequenceGenerator.sequenceName());
         } else if (field.isAnnotationPresent(GeneratedValue.class)) {
@@ -342,7 +338,12 @@ public class EntityHelper {
                 if (generatedValue.strategy() == GenerationType.IDENTITY) {
                     //mysql的自动增长
                     entityColumn.setIdentity(true);
-                    if (!generatedValue.generator().equals("")) {
+                    if(sequenceGenerator!=null && sequenceGenerator.name().equals(generatedValue.generator())){
+//	                	System.out.println("-------1---"+sequenceGenerator.name()+" "+sequenceGenerator.sequenceName());
+	                	entityColumn.setSequenceName(sequenceGenerator.sequenceName());
+	                	entityColumn.setGenerator(sequenceGenerator.name());
+                    }
+                    else if (!generatedValue.generator().equals("")) {
                         String generator = null;
                         IdentityDialect identityDialect = IdentityDialect.getDatabaseDialect(generatedValue.generator());
                         if (identityDialect != null) {
@@ -352,8 +353,13 @@ public class EntityHelper {
                         }
                         entityColumn.setGenerator(generator);
                     }
-                } else {
-                    throw new RuntimeException(field.getName()
+                } 
+//                else if(sequenceGenerator!=null && sequenceGenerator.name().equals(generatedValue.generator())){
+////                	System.out.println("-------2---"+sequenceGenerator.name()+" "+sequenceGenerator.sequenceName());
+//                	entityColumn.setSequenceName(sequenceGenerator.sequenceName());
+//                }
+                else {
+                    throw new MapperException(field.getName()
                             + " - 该字段@GeneratedValue配置只允许以下几种形式:" +
                             "\n1.全部数据库通用的@GeneratedValue(generator=\"UUID\")" +
                             "\n2.useGeneratedKeys的@GeneratedValue(generator=\\\"JDBC\\\")  " +

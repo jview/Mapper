@@ -24,52 +24,28 @@
 
 package tk.mybatis.mapper.mapperhelper;
 
+import org.apache.ibatis.cache.Cache;
+import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
+import org.apache.ibatis.executor.keygen.KeyGenerator;
+import org.apache.ibatis.executor.keygen.NoKeyGenerator;
+import org.apache.ibatis.mapping.*;
+import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.reflection.SystemMetaObject;
+import org.apache.ibatis.scripting.defaults.RawSqlSource;
+import org.apache.ibatis.scripting.xmltags.*;
+import org.apache.ibatis.session.Configuration;
+import tk.mybatis.mapper.MapperException;
+import tk.mybatis.mapper.entity.EntityColumn;
+import tk.mybatis.mapper.entity.EntityTable;
+import tk.mybatis.mapper.entity.IDynamicTableName;
+import tk.mybatis.mapper.util.StringUtil;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.ibatis.cache.Cache;
-import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
-import org.apache.ibatis.executor.keygen.KeyGenerator;
-import org.apache.ibatis.executor.keygen.NoKeyGenerator;
-import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ParameterMap;
-import org.apache.ibatis.mapping.ParameterMapping;
-import org.apache.ibatis.mapping.ParameterMode;
-import org.apache.ibatis.mapping.ResultMap;
-import org.apache.ibatis.mapping.ResultMapping;
-import org.apache.ibatis.mapping.SqlCommandType;
-import org.apache.ibatis.mapping.SqlSource;
-import org.apache.ibatis.mapping.StatementType;
-import org.apache.ibatis.reflection.MetaObject;
-import org.apache.ibatis.reflection.SystemMetaObject;
-import org.apache.ibatis.scripting.defaults.RawSqlSource;
-import org.apache.ibatis.scripting.xmltags.ChooseSqlNode;
-import org.apache.ibatis.scripting.xmltags.DynamicSqlSource;
-import org.apache.ibatis.scripting.xmltags.ForEachSqlNode;
-import org.apache.ibatis.scripting.xmltags.IfSqlNode;
-import org.apache.ibatis.scripting.xmltags.MixedSqlNode;
-import org.apache.ibatis.scripting.xmltags.SqlNode;
-import org.apache.ibatis.scripting.xmltags.StaticTextSqlNode;
-import org.apache.ibatis.scripting.xmltags.TextSqlNode;
-import org.apache.ibatis.scripting.xmltags.TrimSqlNode;
-import org.apache.ibatis.scripting.xmltags.WhereSqlNode;
-import org.apache.ibatis.scripting.xmltags.XMLLanguageDriver;
-import org.apache.ibatis.session.Configuration;
-
-import tk.mybatis.mapper.entity.EntityColumn;
-import tk.mybatis.mapper.entity.EntityTable;
-import tk.mybatis.mapper.entity.IDynamicTableName;
-import tk.mybatis.mapper.util.StringUtil;
+import java.util.*;
 
 /**
  * 通用Mapper模板类，扩展通用Mapper时需要继承该类
@@ -78,10 +54,10 @@ import tk.mybatis.mapper.util.StringUtil;
  */
 public abstract class MapperTemplate {
     private static final XMLLanguageDriver languageDriver = new XMLLanguageDriver();
-    private Map<String, Method> methodMap = new HashMap<String, Method>();
-    private Map<String, Class<?>> entityClassMap = new HashMap<String, Class<?>>();
-    private Class<?> mapperClass;
-    private MapperHelper mapperHelper;
+    protected Map<String, Method> methodMap = new HashMap<String, Method>();
+    protected Map<String, Class<?>> entityClassMap = new HashMap<String, Class<?>>();
+    protected Class<?> mapperClass;
+    protected MapperHelper mapperHelper;
 
     public MapperTemplate(Class<?> mapperClass, MapperHelper mapperHelper) {
         this.mapperClass = mapperClass;
@@ -96,7 +72,7 @@ public abstract class MapperTemplate {
      */
     public static Class<?> getMapperClass(String msId) {
         if (msId.indexOf(".") == -1) {
-            throw new RuntimeException("当前MappedStatement的id=" + msId + ",不符合MappedStatement的规则!");
+            throw new MapperException("当前MappedStatement的id=" + msId + ",不符合MappedStatement的规则!");
         }
         String mapperClassStr = msId.substring(0, msId.lastIndexOf("."));
         try {
@@ -162,6 +138,9 @@ public abstract class MapperTemplate {
         return mapperHelper.getConfig().isNotEmpty();
     }
 
+    public boolean isCheckExampleEntityClass() {
+        return mapperHelper.getConfig().isCheckExampleEntityClass();
+    }
     /**
      * 是否支持该通用方法
      *
@@ -239,7 +218,7 @@ public abstract class MapperTemplate {
      */
     public void setSqlSource(MappedStatement ms) throws Exception {
         if (this.mapperClass == getMapperClass(ms.getId())) {
-            throw new RuntimeException("请不要配置或扫描通用Mapper接口类：" + this.mapperClass);
+            throw new MapperException("请不要配置或扫描通用Mapper接口类：" + this.mapperClass);
         }
         Method method = methodMap.get(getMethodName(ms));
         try {
@@ -260,14 +239,14 @@ public abstract class MapperTemplate {
                 //替换原有的SqlSource
                 setSqlSource(ms, sqlSource);
             } else {
-                throw new RuntimeException("自定义Mapper方法返回类型错误,可选的返回类型为void,SqlNode,String三种!");
+                throw new MapperException("自定义Mapper方法返回类型错误,可选的返回类型为void,SqlNode,String三种!");
             }
             //cache
             checkCache(ms);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new MapperException(e);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException(e.getTargetException() != null ? e.getTargetException() : e);
+            throw new MapperException(e.getTargetException() != null ? e.getTargetException() : e);
         }
     }
 
@@ -308,7 +287,7 @@ public abstract class MapperTemplate {
                 }
             }
         }
-        throw new RuntimeException("无法获取Mapper<T>泛型类型:" + msId);
+        throw new MapperException("无法获取Mapper<T>泛型类型:" + msId);
     }
 
     /**
@@ -542,6 +521,11 @@ public abstract class MapperTemplate {
         KeyGenerator keyGenerator;
         Boolean executeBefore = isBEFORE();
         String IDENTITY = (column.getGenerator() == null || column.getGenerator().equals("")) ? getIDENTITY() : column.getGenerator();
+        if(column.isIdentity() && column.getSequenceName()!=null && column.getSequenceName().startsWith("select")){
+        	System.out.println("----newSelect generator="+column.getGenerator()+" IDENTITY="+IDENTITY+" "+column.getSequenceName());
+        	IDENTITY=column.getSequenceName();
+        }
+        
         if (IDENTITY.equalsIgnoreCase("JDBC")) {
             keyGenerator = new Jdbc3KeyGenerator();
         } else {
@@ -587,6 +571,7 @@ public abstract class MapperTemplate {
             try {
                 configuration.addMappedStatement(statement);
             } catch (Exception e) {
+            	e.printStackTrace();
                 //ignore
             }
             MappedStatement keyStatement = configuration.getMappedStatement(keyId, false);
@@ -594,16 +579,19 @@ public abstract class MapperTemplate {
             try {
                 configuration.addKeyGenerator(keyId, keyGenerator);
             } catch (Exception e) {
+            	e.printStackTrace();
                 //ignore
             }
         }
         //keyGenerator
         try {
+        	System.out.println("keyProperties="+column.getTable().getKeyProperties()+" keyColumns="+column.getTable().getKeyColumns());
             MetaObject msObject = SystemMetaObject.forObject(ms);
             msObject.setValue("keyGenerator", keyGenerator);
             msObject.setValue("keyProperties", column.getTable().getKeyProperties());
             msObject.setValue("keyColumns", column.getTable().getKeyColumns());
         } catch (Exception e) {
+        	e.printStackTrace();
             //ignore
         }
     }

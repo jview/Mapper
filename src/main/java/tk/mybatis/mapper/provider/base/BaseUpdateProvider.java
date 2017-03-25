@@ -25,7 +25,6 @@
 package tk.mybatis.mapper.provider.base;
 
 import org.apache.ibatis.mapping.MappedStatement;
-
 import tk.mybatis.mapper.mapperhelper.MapperHelper;
 import tk.mybatis.mapper.mapperhelper.MapperTemplate;
 import tk.mybatis.mapper.mapperhelper.SqlHelper;
@@ -40,7 +39,6 @@ public class BaseUpdateProvider extends MapperTemplate {
     public BaseUpdateProvider(Class<?> mapperClass, MapperHelper mapperHelper) {
         super(mapperClass, mapperHelper);
     }
-    
 
     /**
      * 通过主键更新全部字段

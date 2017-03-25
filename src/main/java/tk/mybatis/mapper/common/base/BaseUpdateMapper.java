@@ -35,6 +35,6 @@ import tk.mybatis.mapper.common.base.update.UpdateByPrimaryKeySelectiveMapper;
  */
 public interface BaseUpdateMapper<T> extends
         UpdateByPrimaryKeyMapper<T>,
-        UpdateByPrimaryKeySelectiveMapper<T>{
+        UpdateByPrimaryKeySelectiveMapper<T> {
 
 }

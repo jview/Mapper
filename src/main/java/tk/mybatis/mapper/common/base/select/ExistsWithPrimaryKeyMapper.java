@@ -22,30 +22,26 @@
  * THE SOFTWARE.
  */
 
-package tk.mybatis.mapper.common.condition;
+package tk.mybatis.mapper.common.base.select;
 
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.UpdateProvider;
-import tk.mybatis.mapper.provider.ConditionProvider;
+import org.apache.ibatis.annotations.SelectProvider;
+import tk.mybatis.mapper.provider.base.BaseSelectProvider;
 
 /**
- * 通用Mapper接口,Condition查询
+ * 通用Mapper接口,查询
  *
  * @param <T> 不能为空
  * @author liuzh
  */
-public interface UpdateByConditionMapper<T> {
+public interface ExistsWithPrimaryKeyMapper<T> {
 
     /**
-     * 根据Condition条件更新实体`record`包含的全部属性，null值会被更新
+     * 根据主键字段查询总数，方法参数必须包含完整的主键属性，查询条件使用等号
      *
-     * @param record
-     * @param condition
+     * @param key
      * @return
      */
-    @UpdateProvider(type = ConditionProvider.class, method = "dynamicSQL")
-    @Options(useCache = false, useGeneratedKeys = false)
-    int updateByCondition(@Param("record") T record, @Param("example") Object condition);
+    @SelectProvider(type = BaseSelectProvider.class, method = "dynamicSQL")
+    boolean existsWithPrimaryKey(Object key);
 
 }

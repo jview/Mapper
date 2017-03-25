@@ -22,30 +22,41 @@
  * THE SOFTWARE.
  */
 
-package tk.mybatis.mapper.common.condition;
+package tk.mybatis.mapper.test.country;
 
-import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.UpdateProvider;
-import tk.mybatis.mapper.provider.ConditionProvider;
+import org.apache.ibatis.session.SqlSession;
+import org.junit.Assert;
+import org.junit.Test;
+import tk.mybatis.mapper.mapper.CountryMapper;
+import tk.mybatis.mapper.mapper.MybatisHelper;
+import tk.mybatis.mapper.model.Country;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * 通用Mapper接口,Condition查询
+ * 通过主键查询
  *
- * @param <T> 不能为空
  * @author liuzh
  */
-public interface UpdateByConditionMapper<T> {
+public class TestExistsWithPrimaryKey {
 
     /**
-     * 根据Condition条件更新实体`record`包含的全部属性，null值会被更新
-     *
-     * @param record
-     * @param condition
-     * @return
+     * 根据PK进行查询
      */
-    @UpdateProvider(type = ConditionProvider.class, method = "dynamicSQL")
-    @Options(useCache = false, useGeneratedKeys = false)
-    int updateByCondition(@Param("record") T record, @Param("example") Object condition);
+    @Test
+    public void testDynamicExistsWithPrimaryKey() {
+        SqlSession sqlSession = MybatisHelper.getSqlSession();
+        try {
+            CountryMapper mapper = sqlSession.getMapper(CountryMapper.class);
+            Country country = new Country();
+            country.setId(35);
+            Assert.assertEquals(true, mapper.existsWithPrimaryKey(country));
 
+            country.setId(0);
+            Assert.assertEquals(false, mapper.existsWithPrimaryKey(country));
+        } finally {
+            sqlSession.close();
+        }
+    }
 }
